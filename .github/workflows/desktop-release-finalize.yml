@@ -1,0 +1,45 @@
+name: SOrange Release Finalize Recovery
+
+"on":
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version
+        required: true
+      release_id:
+        description: SOrange backend release id
+        required: true
+      channel:
+        description: Release channel
+        required: true
+        default: stable
+      callback_url:
+        description: SOrange backend callback URL
+        required: true
+      build_run_id:
+        description: Successful packaging run id recorded by the backend
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  finalize:
+    name: Finalize verified desktop release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Mark verified release succeeded
+        env:
+          RELEASE_ID: ${{ inputs.release_id }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_CHANNEL: ${{ inputs.channel }}
+          RELEASE_CALLBACK_URL: ${{ inputs.callback_url }}
+          RELEASE_CALLBACK_TOKEN: ${{ secrets.RELEASE_CALLBACK_TOKEN }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        run: python scripts/upload_desktop_release_artifact.py --status succeeded
