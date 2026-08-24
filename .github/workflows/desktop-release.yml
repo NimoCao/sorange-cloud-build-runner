@@ -356,3 +356,33 @@ jobs:
       - name: Report Windows validation failure
         if: failure()
         run: python release-control/scripts/upload_desktop_release_artifact.py --status failed --target win-x64 --error "win-x64 install or smoke validation failed"
+
+  finalize:
+    name: Finalize complete desktop release
+    needs:
+      - prepare
+      - build
+      - validate-windows
+    if: ${{ always() && inputs.target_filter == 'all' && needs.prepare.result == 'success' && needs.build.result == 'success' && needs.validate-windows.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_ID: ${{ inputs.release_id }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_CHANNEL: ${{ inputs.channel }}
+      RELEASE_CALLBACK_URL: ${{ inputs.callback_url }}
+      RELEASE_CALLBACK_TOKEN: ${{ secrets.RELEASE_CALLBACK_TOKEN }}
+      BUILD_RUN_ID: github:${{ github.run_id }}
+    steps:
+      - name: Check out release control
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.sha }}
+          path: release-control
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Mark complete release succeeded
+        run: python release-control/scripts/upload_desktop_release_artifact.py --status succeeded
