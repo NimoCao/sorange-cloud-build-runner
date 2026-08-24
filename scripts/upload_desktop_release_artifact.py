@@ -74,7 +74,9 @@ def post_callback(payload: dict) -> None:
         except urllib_error.HTTPError as exc:
             retryable = exc.code in {408, 429} or exc.code >= 500
             if not retryable or attempt == 3:
-                raise RuntimeError(f"Callback failed with status {exc.code}") from exc
+                response_body = exc.read().decode("utf-8", errors="replace").strip()
+                detail = f": {response_body[:2000]}" if response_body else ""
+                raise RuntimeError(f"Callback failed with status {exc.code}{detail}") from exc
         except (urllib_error.URLError, TimeoutError) as exc:
             if attempt == 3:
                 raise RuntimeError(f"Callback failed after {attempt} attempts: {exc}") from exc
